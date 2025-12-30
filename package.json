@@ -1,0 +1,39 @@
+{
+  "name": "smarthub",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor-community/contacts": "^7.1.0",
+    "@capacitor-community/media": "^6.0.0",
+    "@capacitor/camera": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/device": "^8.0.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/geolocation": "^6.0.0",
+    "@capacitor/local-notifications": "^8.0.0",
+    "@capacitor/network": "^8.0.0",
+    "@capacitor/push-notifications": "^6.0.0",
+    "@tailwindcss/postcss": "^4.1.18",
+    "next": "14.2.5",
+    "next-pwa": "^5.6.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "recordrtc": "^5.6.2"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.3"
+  }
+}
