@@ -25,9 +25,7 @@ const config: CapacitorConfig = {
     },
     LocalNotifications: {},
     Media: {
-      quantity: 50,
-      thumbnailWidth: 200,
-      thumbnailHeight: 200
+      androidGalleryMode: false
     }
   },
   cordova: {
