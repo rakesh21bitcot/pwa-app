@@ -4,15 +4,13 @@ import { useState, useEffect } from 'react'
 
 // Force dynamic rendering - prevent prerendering
 export const dynamic = 'force-dynamic'
-import { Contacts } from '@capacitor-community/contacts'
-import { Capacitor } from '@capacitor/core'
 import Link from 'next/link'
 
 interface Contact {
   id: string
   displayName: string
-  phoneNumbers?: { label?: string; number: string }[]
-  emails?: { label?: string; address: string }[]
+  phoneNumbers?: string[]
+  emails?: string[]
   organizationName?: string
 }
 
@@ -28,39 +26,41 @@ export default function ContactPage() {
       setLoading(true)
       setError(null)
 
-      // Check if running in Capacitor (native app)
-      if (!Capacitor.isNativePlatform()) {
-        setError('Contacts access is only available when running as a native app on iOS/Android. Please install the app to access device contacts.')
+      // Check if Web Contacts API is supported
+      if (!('contacts' in navigator)) {
+        setError('Your browser doesn\'t support the Contacts API. Try using a modern browser like Chrome, Safari, or Edge.')
         return
       }
 
-      const permission = await Contacts.requestPermissions()
-      if (permission.contacts !== 'granted') {
-        setError('Contacts permission denied. Please allow access to contacts in your device settings and try again.')
-        return
-      }
-
-      const result = await Contacts.getContacts({
-        projection: {
-          name: true,
-          phones: true,
-          emails: true,
-          organization: true,
+      // Check if we already have permission
+      if ('permissions' in navigator) {
+        const permission = await navigator.permissions.query({ name: 'contacts' as PermissionName })
+        if (permission.state === 'denied') {
+          setError('Contacts permission denied. Please allow access to contacts in your browser settings and try again.')
+          return
         }
-      })
+      }
 
-      const contactList: Contact[] = result.contacts.map(contact => ({
-        id: contact.contactId || Math.random().toString(),
-        displayName: contact?.name?.display || 'Unknown',
-        phoneNumbers: contact.phones,
-        emails: contact.emails,
-        organizationName: contact.organization?.company
-      }))
+      try {
+        // Request contacts using Web Contacts API
+        const contacts = await (navigator as any).contacts.select(['name', 'tel', 'email'], { multiple: true })
 
-      setContacts(contactList)
+        const contactList: Contact[] = contacts.map((contact: any, index: number) => ({
+          id: `contact_${index}_${Date.now()}`,
+          displayName: contact.name?.[0] || 'Unknown',
+          phoneNumbers: contact.tel || [],
+          emails: contact.email || [],
+          organizationName: undefined // Web Contacts API doesn't provide organization info
+        }))
+
+        setContacts(contactList)
+      } catch (permissionError) {
+        // User cancelled or denied permission
+        setError('Contacts access was cancelled or denied. Please try again and allow access when prompted.')
+      }
     } catch (err) {
       console.error('Load contacts error:', err)
-      setError('Failed to load contacts. Please check permissions and try again.')
+      setError('Failed to load contacts. Please check your browser permissions and try again.')
     } finally {
       setLoading(false)
     }
@@ -144,49 +144,23 @@ export default function ContactPage() {
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Access Your Contacts</h3>
               <p className="text-gray-600 mb-6 leading-relaxed">
-                {Capacitor.isNativePlatform()
-                  ? 'Load and manage your device contacts with full native access'
-                  : 'Contacts access requires the native app on iOS or Android'
-                }
+                Access and manage your device contacts directly from your browser
               </p>
 
-              {Capacitor.isNativePlatform() ? (
-                <div className="space-y-4">
-                  <button
-                    onClick={loadContacts}
-                    className="btn-primary w-full"
-                  >
-                    <span className="text-xl mr-2">📱</span>
-                    <span>Load Contacts</span>
-                  </button>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <p className="text-blue-800 text-sm">
-                      🔒 This will request permission to access your device contacts securely
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
-                      <span className="text-2xl">📱</span>
-                    </div>
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-2">Install as Native App</h4>
-                  <p className="text-gray-700 text-sm mb-4">
-                    To access device contacts, install SmartHub as a native app on your iOS or Android device.
+              <div className="space-y-4">
+                <button
+                  onClick={loadContacts}
+                  className="btn-primary w-full"
+                >
+                  <span className="text-xl mr-2">📱</span>
+                  <span>Load Contacts</span>
+                </button>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <p className="text-blue-800 text-sm">
+                    🔒 This will request permission to access your device contacts securely
                   </p>
-                  <button
-                    onClick={() => {
-                      alert('To install: Tap the share button in Safari/Chrome and select "Add to Home Screen"')
-                    }}
-                    className="btn-primary w-full"
-                  >
-                    <span className="text-lg mr-2">📲</span>
-                    <span>How to Install</span>
-                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -261,7 +235,7 @@ export default function ContactPage() {
                               <span className="text-green-600 text-xs">📞</span>
                             </div>
                             <p className="text-sm text-gray-700 font-medium">
-                              {contact.phoneNumbers[0].number}
+                              {contact.phoneNumbers[0]}
                             </p>
                           </div>
                         )}
@@ -272,7 +246,7 @@ export default function ContactPage() {
                               <span className="text-blue-600 text-xs">✉️</span>
                             </div>
                             <p className="text-sm text-gray-700 truncate">
-                              {contact.emails[0].address}
+                              {contact.emails[0]}
                             </p>
                           </div>
                         )}
@@ -281,7 +255,7 @@ export default function ContactPage() {
                       <div className="flex space-x-2 ml-3">
                         {contact.phoneNumbers && contact.phoneNumbers.length > 0 && (
                           <button
-                            onClick={() => callContact(contact.phoneNumbers![0].number)}
+                            onClick={() => callContact(contact.phoneNumbers[0])}
                             className="btn-success p-3"
                             title="Call"
                           >
@@ -290,7 +264,7 @@ export default function ContactPage() {
                         )}
                         {contact.emails && contact.emails.length > 0 && (
                           <button
-                            onClick={() => emailContact(contact.emails![0].address)}
+                            onClick={() => emailContact(contact.emails[0])}
                             className="btn-primary p-3"
                             title="Email"
                           >
@@ -347,13 +321,10 @@ export default function ContactPage() {
                         {selectedContact.phoneNumbers.map((phone, index) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                             <div>
-                              <span className="text-gray-900 font-medium">{phone.number}</span>
-                              {phone.label && (
-                                <span className="text-xs text-gray-500 ml-2">({phone.label})</span>
-                              )}
+                              <span className="text-gray-900 font-medium">{phone}</span>
                             </div>
                             <button
-                              onClick={() => callContact(phone.number)}
+                              onClick={() => callContact(phone)}
                               className="btn-success px-4 py-2 text-sm"
                             >
                               Call
@@ -372,13 +343,10 @@ export default function ContactPage() {
                         {selectedContact.emails.map((email, index) => (
                           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                             <div>
-                              <span className="text-gray-900 font-medium truncate block">{email.address}</span>
-                              {email.label && (
-                                <span className="text-xs text-gray-500">({email.label})</span>
-                              )}
+                              <span className="text-gray-900 font-medium truncate block">{email}</span>
                             </div>
                             <button
-                              onClick={() => emailContact(email.address)}
+                              onClick={() => emailContact(email)}
                               className="btn-primary px-4 py-2 text-sm"
                             >
                               Email

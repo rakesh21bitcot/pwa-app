@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 
 // Force dynamic rendering - prevent prerendering
 export const dynamic = 'force-dynamic'
-import { PushNotifications } from '@capacitor/push-notifications'
-import { LocalNotifications } from '@capacitor/local-notifications'
 import Link from 'next/link'
 
 interface NotificationItem {
@@ -21,7 +19,6 @@ export default function NotificationsPage() {
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [registrationToken, setRegistrationToken] = useState<string | null>(null)
 
   useEffect(() => {
     checkPermissions()
@@ -30,10 +27,15 @@ export default function NotificationsPage() {
 
   const checkPermissions = async () => {
     try {
-      const result = await PushNotifications.checkPermissions()
-      setPermissionGranted(result.receive === 'granted')
+      if (!('Notification' in window)) {
+        setError('This browser does not support notifications.')
+        return
+      }
+
+      setPermissionGranted(Notification.permission === 'granted')
     } catch (err) {
       console.error('Check permissions error:', err)
+      setError('Failed to check notification permissions.')
     }
   }
 
@@ -42,11 +44,17 @@ export default function NotificationsPage() {
       setLoading(true)
       setError(null)
 
-      const result = await PushNotifications.requestPermissions()
-      setPermissionGranted(result.receive === 'granted')
+      if (!('Notification' in window)) {
+        setError('This browser does not support notifications.')
+        return
+      }
 
-      if (result.receive === 'granted') {
-        await registerNotifications()
+      const result = await Notification.requestPermission()
+      setPermissionGranted(result === 'granted')
+
+      if (result === 'granted') {
+        // Show a test notification to confirm it works
+        showTestNotification('Notifications enabled!', 'You can now receive notifications from this app.')
       }
     } catch (err) {
       console.error('Request permissions error:', err)
@@ -56,47 +64,10 @@ export default function NotificationsPage() {
     }
   }
 
-  const registerNotifications = async () => {
-    try {
-      await PushNotifications.register()
-    } catch (err) {
-      console.error('Register notifications error:', err)
-      setError('Failed to register for notifications.')
-    }
-  }
-
   const setupNotificationListeners = () => {
-    // Registration success
-    PushNotifications.addListener('registration', (token) => {
-      console.log('Registration token:', token.value)
-      setRegistrationToken(token.value)
-    })
-
-    // Registration error
-    PushNotifications.addListener('registrationError', (err) => {
-      console.error('Registration error:', err)
-      setError('Failed to register for push notifications.')
-    })
-
-    // Push notification received
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push notification received:', notification)
-
-      const newNotification: NotificationItem = {
-        id: Date.now().toString(),
-        title: notification.title || 'Notification',
-        body: notification.body || '',
-        timestamp: new Date(),
-        data: notification.data
-      }
-
-      setNotifications(prev => [newNotification, ...prev])
-    })
-
-    // Push notification action performed
-    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-      console.log('Push notification action performed:', notification)
-    })
+    // For browser notifications, we don't need listeners as notifications are created programmatically
+    // In a real PWA, you might want to listen for service worker messages for push notifications
+    console.log('Notification listeners setup complete')
   }
 
   const sendLocalNotification = async () => {
@@ -109,30 +80,13 @@ export default function NotificationsPage() {
       setLoading(true)
       setError(null)
 
-      await PushNotifications.createChannel({
-        id: 'default',
-        name: 'Default',
-        description: 'Default notification channel',
-        importance: 5,
-        visibility: 1,
-        sound: 'default',
-        vibration: true,
-        lights: true
-      })
+      if (Notification.permission !== 'granted') {
+        setError('Notification permission not granted. Please request permission first.')
+        return
+      }
 
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Date.now(),
-          title: title,
-          body: body,
-          schedule: { at: new Date(Date.now() + 1000) }, // 1 second from now
-          sound: 'default',
-          actionTypeId: '',
-          extra: null
-        }]
-      })
-
-      alert('Local notification scheduled!')
+      showTestNotification(title, body)
+      alert('Notification sent!')
     } catch (err) {
       console.error('Send local notification error:', err)
       setError('Failed to send local notification.')
@@ -149,16 +103,54 @@ export default function NotificationsPage() {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
+  const showTestNotification = (title: string, body: string, data?: any) => {
+    try {
+      const notification = new Notification(title, {
+        body: body,
+        icon: '/icons/icon-192x192.png', // Use your app icon
+        badge: '/icons/icon-72x72.png',
+        tag: 'smarthub-notification', // Group similar notifications
+        data: data || {}
+      })
+
+      // Add to our notifications list
+      const newNotification: NotificationItem = {
+        id: Date.now().toString(),
+        title: title,
+        body: body,
+        timestamp: new Date(),
+        data: data || {}
+      }
+
+      setNotifications(prev => [newNotification, ...prev])
+
+      // Auto-close notification after 5 seconds
+      setTimeout(() => {
+        notification.close()
+      }, 5000)
+
+      return notification
+    } catch (err) {
+      console.error('Failed to show notification:', err)
+      throw err
+    }
+  }
+
   const testNotification = () => {
-    const testNotification: NotificationItem = {
-      id: Date.now().toString(),
-      title: 'Test Notification',
-      body: 'This is a test notification to demonstrate the notification system.',
-      timestamp: new Date(),
-      data: { test: true }
+    if (Notification.permission !== 'granted') {
+      setError('Notification permission not granted. Please request permission first.')
+      return
     }
 
-    setNotifications(prev => [testNotification, ...prev])
+    try {
+      showTestNotification(
+        'Test Notification',
+        'This is a test notification to demonstrate the notification system.',
+        { test: true }
+      )
+    } catch (err) {
+      setError('Failed to show test notification.')
+    }
   }
 
   return (
@@ -271,16 +263,7 @@ export default function NotificationsPage() {
                 </div>
               </div>
 
-              {registrationToken && (
-                <div className="mt-3">
-                  <div className="text-xs font-medium text-gray-600 mb-2">Registration Token</div>
-                  <div className="bg-white border border-gray-200 rounded-xl p-3">
-                    <p className="text-xs font-mono text-gray-800 break-all leading-relaxed">
-                      {registrationToken}
-                    </p>
-                  </div>
-                </div>
-              )}
+              {/* Browser notifications don't use registration tokens */}
             </div>
 
             {error && (
@@ -381,22 +364,22 @@ export default function NotificationsPage() {
             <div className="grid grid-cols-1 gap-4">
               <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl border border-blue-200">
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-xl">📡</span>
+                  <span className="text-white text-xl">🌐</span>
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-bold text-gray-900">Push Notifications</div>
-                  <div className="text-xs text-gray-600">Receive notifications from remote servers</div>
+                  <div className="text-sm font-bold text-gray-900">Browser Notifications</div>
+                  <div className="text-xs text-gray-600">Native browser notification support</div>
                 </div>
                 <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
               </div>
 
               <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-2xl border border-green-200">
                 <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-white text-xl">📱</span>
+                  <span className="text-white text-xl">🔔</span>
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-bold text-gray-900">Local Notifications</div>
-                  <div className="text-xs text-gray-600">Schedule notifications on device</div>
+                  <div className="text-sm font-bold text-gray-900">Instant Notifications</div>
+                  <div className="text-xs text-gray-600">Send notifications immediately</div>
                 </div>
                 <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
               </div>
