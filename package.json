@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@capacitor-community/contacts": "^7.1.0",
-    "@capacitor-community/media": "^6.0.0",
+    "@capacitor-community/media": "^8.0.0",
     "@capacitor/camera": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
