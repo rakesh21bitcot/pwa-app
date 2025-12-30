@@ -4,7 +4,7 @@
 import Link from 'next/link'
 
 // Force dynamic rendering - prevent prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 import { useState, useEffect } from 'react'
 import { Device } from '@capacitor/device'
 import { Network } from '@capacitor/network'

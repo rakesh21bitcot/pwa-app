@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 
 // Force dynamic rendering - prevent prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 import { Media, MediaSaveOptions } from '@capacitor-community/media'
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 import Link from 'next/link'

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 
 // Force dynamic rendering - prevent prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 import { Geolocation, Position } from '@capacitor/geolocation'
 import Link from 'next/link'
 

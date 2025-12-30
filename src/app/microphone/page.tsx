@@ -6,7 +6,7 @@ import { startRecording, stopRecording } from '../../../lib/recorder'
 import Link from 'next/link'
 
 // Force dynamic rendering - prevent prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-static'
 
 export default function MicrophonePage() {
   const [recording, setRecording] = useState(false)

@@ -39,10 +39,10 @@ const config: CapacitorConfig = {
     }
   },
   ios: {
-    scheme: 'SmartHub'
+    scheme: 'ios'
   },
   android: {
-    path: 'smarthub'
+    path: 'android'
   }
 }
 

@@ -6,7 +6,7 @@ const nextConfig = {
       unoptimized: true,
     },
     // Explicitly disable static export for Capacitor apps
-    output: undefined,
+    output: 'export',
     trailingSlash: false,
   };
 
