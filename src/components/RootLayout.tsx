@@ -8,11 +8,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Skip service worker registration in native containers (Capacitor)
-    // Capacitor environments may not support Service Worker registration the same way as browsers.
-    const isNative = (window as any).Capacitor && (window as any).Capacitor.isNative;
-
-    if (isNative) return;
+    // Service Worker registration is needed for PWA functionality in browsers
 
     if ("serviceWorker" in navigator) {
       (async () => {
