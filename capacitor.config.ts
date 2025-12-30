@@ -5,7 +5,6 @@ const config: CapacitorConfig = {
   appId: 'com.smarthub.app',
   appName: 'SmartHub - Device Access',
   webDir: 'out',
-  bundledWebRuntime: false,
   plugins: {
     Contacts: {},
     Device: {},
